@@ -1,0 +1,48 @@
+#! /usr/bin/env bash
+#
+# essence
+# https://github.com/betatim/essence
+#
+# `essence` takes a list of file names and creates a gist from them
+#
+
+set -e
+
+function json_escape(){
+    echo "$1" | python -c 'import json,sys; print json.dumps(sys.stdin.read())'
+}
+
+if [ ! -f $HOME/.essence.token ]; then
+    echo "You need to create a OAuth token for essence to work"
+    echo "Run the following command and write the 'token' from"
+    echo "the response to $HOME/.essence.token"
+    echo
+    echo "curl https://api.github.com/authorizations --user $YOUR_GH_USER_NAME--data '{\"scopes\":[\"gist\"],\"note\":\"Essence\"}'"
+    echo
+else
+    TOKEN=`cat $HOME/.essence.token`
+    FILES=""
+    for fname in "$@"
+    do
+        if [ -f "$fname" ]; then
+       	    gist_fname=$(basename "$fname")
+	    gist_content=$(json_escape "$(<$fname)" )
+	    FILES=$FILES"\"$gist_fname\":{\"content\":$gist_content},"
+	fi
+    done
+    FILES=${FILES:0:${#FILES}-1}
+    
+    data="{\"public\":\"true\",\"files\":{$FILES}}"
+    
+    response=$(curl -H "Authorization: token $TOKEN" --data "$data" https://api.github.com/gists 2> /dev/null)
+    
+    url=$(awk '/html_url/{print $2}' <<< "$response")
+    
+    for u in $url
+    do
+	uu=${u:1:${#u}-3}
+	echo "Your gist is at: $uu (URL pasted to clipboard)"
+	echo "$uu" | tr -d '\n' | pbcopy
+	break
+    done
+fi

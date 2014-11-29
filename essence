@@ -34,7 +34,7 @@ else
     
     data="{\"public\":\"true\",\"files\":{$FILES}}"
     
-    response=$(curl -H "Authorization: token $TOKEN" --data "$data" https://api.github.com/gists 2> /dev/null)
+    response=$(echo "$data" | curl -H "Authorization: token $TOKEN" --data @- https://api.github.com/gists 2> /dev/null)
     
     url=$(awk '/html_url/{print $2}' <<< "$response")
     
